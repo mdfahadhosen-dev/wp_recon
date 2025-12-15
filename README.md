@@ -1,7 +1,7 @@
 # WPRecon - Advanced WordPress Reconnaissance & Vulnerability Scanner
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-2.1-blue.svg)](https://github.com/mdfahadhosen-dev/wprecon)
+[![Version](https://img.shields.io/badge/version-2.1-blue.svg)](https://github.com/mdfahadhosen-dev/wp_recon)
 [![Bash](https://img.shields.io/badge/bash-4.0+-green.svg)](https://www.gnu.org/software/bash/)
 
 > Professional-grade WordPress security assessment tool for ethical hackers and penetration testers.
@@ -103,7 +103,7 @@ chmod +x wprecon.sh
 ### Manual Installation
 ```bash
 # Download the script
-wget https://raw.githubusercontent.com/professional-security/wprecon/main/wprecon.sh
+wget https://raw.githubusercontent.com/mdfahadhosen-dev/wp_recon/main/wprecon.sh
 chmod +x wprecon.sh
 
 # Install dependencies (Ubuntu/Debian)
@@ -337,8 +337,8 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 ### Development Setup
 ```bash
 # Fork and clone
-git clone https://github.com/your-username/wprecon.git
-cd wprecon
+git clone https://github.com/mdfahadhosen-dev/wp_recon.git
+cd wp_recon
 
 # Create feature branch
 git checkout -b feature/amazing-feature
@@ -464,8 +464,8 @@ WPRecon meets **enterprise-level security software standards** with the followin
 - 📧 Email: fahadhosen.dev.19@gmail.com
 - 🌐 Website: https://mdfahadhosendev.vercel.app/
 - 💼 LinkedIn: https://www.linkedin.com/in/fahadcyberdev/
-- 🐛 Issues: [GitHub Issues](https://github.com/mdfahadhosen-dev/wprecon/issues)
-- 📖 Documentation: [Wiki](https://github.com/mdfahadhosen-dev/wprecon/wiki)
+- 🐛 Issues: [GitHub Issues](https://github.com/mdfahadhosen-dev/wp_recon/issues)
+- 📖 Documentation: [Wiki](https://github.com/mdfahadhosen-dev/wp_recon/wiki)
 
 ---
 

@@ -164,7 +164,7 @@ show_help() {
     echo "  Website: https://mdfahadhosendev.vercel.app/"
     echo "  LinkedIn: https://www.linkedin.com/in/fahadcyberdev/"
     echo "  Company: Bangladesh"
-    echo "  Project: https://github.com/mdfahadhosen-dev/wprecon"
+    echo "  Project: https://github.com/mdfahadhosen-dev/wp_recon"
     echo "  License: MIT License"
     echo ""
     echo "API REQUIREMENTS:"
