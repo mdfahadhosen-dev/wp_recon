@@ -8,7 +8,7 @@
 # Author: OpenSource Security Community
 # Developer: MD Fahad Hosen <fahadhosen.dev.19@gmail.com>
 # License: MIT License (see LICENSE file)
-# Repository: https://github.com/mdfahadhosen-dev/wprecon
+# Repository: https://github.com/mdfahadhosen-dev/wp_recon.git
 #
 # Description:
 #   WPRecon is a comprehensive command-line tool designed for ethical hackers,
@@ -110,7 +110,7 @@ EOF
     echo -e "${WHITE}Advanced WordPress Reconnaissance & Vulnerability Scanner v${SCRIPT_VERSION}${NC}"
     echo -e "${PURPLE}Professional Security Tool for Ethical Hacking & Penetration Testing${NC}"
     echo -e "${BLUE}Developer: MD Fahad Hosen <fahadhosen.dev.19@gmail.com>${NC}"
-    echo -e "${YELLOW}License: MIT | Repository: https://github.com/mdfahadhosen-dev/wprecon${NC}"
+    echo -e "${YELLOW}License: MIT | Repository: https://github.com/mdfahadhosen-dev/wp_recon.git${NC}"
     echo ""
 }
 

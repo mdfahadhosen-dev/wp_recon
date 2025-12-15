@@ -90,7 +90,7 @@ WPRecon is a comprehensive command-line tool designed for ethical hackers, secur
 ### Quick Install
 ```bash
 # Clone the repository
-git clone https://github.com/mdfahadhosen-dev/wprecon.git
+git clone https://github.com/mdfahadhosen-dev/wp_recon.git
 cd wprecon
 
 # Make executable
