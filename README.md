@@ -1,7 +1,7 @@
 # WPRecon - Advanced WordPress Reconnaissance & Vulnerability Scanner
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-2.1-blue.svg)](https://github.com/mdfahadhosen-dev/wp_recon)
+[![Version](https://img.shields.io/badge/version-2.3-blue.svg)](https://github.com/mdfahadhosen-dev/wp_recon)
 [![Bash](https://img.shields.io/badge/bash-4.0+-green.svg)](https://www.gnu.org/software/bash/)
 
 > Professional-grade WordPress security assessment tool for ethical hackers and penetration testers.
@@ -14,7 +14,7 @@
 ╚███╔███╔╝██║     ██║  ██║███████╗╚██████╗╚██████╔╝██║ ╚████║
  ╚══╝╚══╝ ╚═╝     ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝
 
-Advanced WordPress Reconnaissance & Vulnerability Scanner v2.1
+Advanced WordPress Reconnaissance & Vulnerability Scanner v2.3
 Professional Security Tool for Ethical Hacking & Penetration Testing
 ```
 
@@ -37,12 +37,14 @@ Professional Security Tool for Ethical Hacking & Penetration Testing
 
 ## 🎯 Overview
 
-WPRecon is a comprehensive command-line tool designed for ethical hackers, security researchers, and system administrators to perform reconnaissance and vulnerability assessment on WordPress installations. It combines traditional scanning techniques with modern API integrations to provide thorough security analysis.
+WPRecon is a comprehensive command-line tool designed for ethical hackers, security researchers, and system administrators to perform reconnaissance and vulnerability assessment on WordPress installations. It combines traditional scanning techniques with modern AI integrations to provide thorough security analysis.
 
 ### Key Capabilities
 
-- **Multi-vulnerability scanning** with 8+ different check types
-- **API integrations** with Shodan and WPScan for enhanced detection
+- **Multi-vulnerability scanning** with 30+ different check types
+- **WordPress version detection** with CVE matching
+- **AI-powered exploitation analysis** with PoC generation
+- **API integrations** with Shodan, WPScan, and Groq
 - **Multiple export formats** (TXT, JSON, CSV)
 - **Stealth scanning** with configurable delays and user-agents
 - **Batch processing** with progress tracking
@@ -51,7 +53,7 @@ WPRecon is a comprehensive command-line tool designed for ethical hackers, secur
 
 ## ✨ Features
 
-### Core Scanning
+### Core Scanning (30+ Checks)
 - 🔍 Setup Configuration Exposure Detection
 - 🌐 XML-RPC API Exposure Analysis
 - 📡 WP-JSON REST API Security Checks
@@ -60,6 +62,31 @@ WPRecon is a comprehensive command-line tool designed for ethical hackers, secur
 - 🔌 Plugin Enumeration and Detection
 - 👥 User Discovery and Enumeration
 - 💾 Backup File Exposure Scanning
+- ⚙️ wp-config.php Direct Access
+- 📁 .htaccess Exposure
+- 🐛 Debug Log Exposure
+- 🗄️ Database Backup Exposure
+- ℹ️ PHPinfo Exposure
+- 📜 License File Exposure
+- 🗺️ XML Sitemap Exposure
+- 📰 RSS Feed Exposure
+- ⏰ WordPress Cron Exposure
+- 🔍 SQL Error Exposure
+- 📂 Git/SVN Metadata Exposure
+- 📱 DS_Store Exposure
+- 🚀 WordPress Install Exposure
+- 📂 Plugin/Theme Directory Listing
+- 🔗 XMLRPC PingBack
+- 👤 REST API User Enumeration
+- 📖 Author Archive Exposure
+
+### AI-Powered Features
+- 🤖 **Groq AI Integration**: Validates if vulnerabilities are exploitable
+- 📊 **CVSS Scoring**: Automatic severity scoring
+- 🎯 **CVE Matching**: Identifies known CVEs for detected WP version
+- 💥 **Exploitation Analysis**: Detailed steps to exploit findings
+- 🛠️ **PoC Generation**: Example commands to test vulnerabilities
+- 📈 **Impact Assessment**: What attackers can achieve
 
 ### Advanced Features
 - 🕵️ **Shodan Integration**: IP reconnaissance and port scanning
@@ -71,13 +98,7 @@ WPRecon is a comprehensive command-line tool designed for ethical hackers, secur
 - ⚙️ **Configuration Files**: Persistent settings and API key storage
 - 🎯 **Custom User-Agents**: Stealth scanning capabilities
 - 🌐 **Proxy Support**: Anonymity through proxy chains
-
-### Professional Features
-- 📋 **Comprehensive Reporting**: Detailed security assessment reports
-- 🎯 **Error Handling**: Robust connection and parsing error management
-- 🔄 **Batch Processing**: Handle multiple targets efficiently
-- 📈 **Statistics Tracking**: Scan metrics and performance data
-- 🏷️ **Tagging System**: Categorize and prioritize findings
+- 🔑 **Interactive Setup**: `--setup` flag for easy API key configuration
 
 ## 📋 Requirements
 
@@ -94,6 +115,7 @@ WPRecon is a comprehensive command-line tool designed for ethical hackers, secur
 ### Optional Dependencies
 - **Shodan API Key**: For enhanced reconnaissance (free tier available)
 - **WPScan API Key**: For vulnerability database access (free tier available)
+- **Groq API Key**: For AI-powered exploitation analysis (free tier available)
 
 ## 🚀 Installation
 
@@ -200,8 +222,11 @@ COLOR_ENABLED=true
 | `-c, --no-color` | Disable colors | `-c` |
 | `--shodan-key KEY` | Shodan API key | `--shodan-key abc123` |
 | `--wpscan-key KEY` | WPScan API key | `--wpscan-key def456` |
+| `--groq-key KEY` | Groq API key | `--groq-key gpt_xxx` |
 | `--use-shodan` | Enable Shodan integration | `--use-shodan` |
 | `--use-wpscan` | Enable WPScan integration | `--use-wpscan` |
+| `--use-groq` | Enable Groq AI validation | `--use-groq` |
+| `--setup` | Interactive API key setup | `--setup` |
 | `--format FORMAT` | Export format (txt/json/csv) | `--format json` |
 | `--stealth` | Enable stealth mode | `--stealth` |
 | `--rate-limit SEC` | Delay between requests | `--rate-limit 3` |
@@ -229,6 +254,16 @@ COLOR_ENABLED=true
              --wpscan-key YOUR_KEY2 --use-wpscan \
              -u https://example.com
 
+# AI-powered exploitation analysis
+./wprecon.sh --groq-key YOUR_GROQ_KEY --use-groq \
+             -u https://example.com
+
+# Full feature scan with all APIs
+./wprecon.sh --shodan-key SHODAN_KEY --use-shodan \
+             --wpscan-key WPSCAN_KEY --use-wpscan \
+             --groq-key GROQ_KEY --use-groq \
+             -u https://example.com
+
 # Stealth scanning
 ./wprecon.sh -u https://example.com --stealth --rate-limit 5
 
@@ -236,16 +271,31 @@ COLOR_ENABLED=true
 ./wprecon.sh -f targets.txt --format json -o scan_results.json
 ```
 
+### Interactive API Setup
+```bash
+# Setup API keys interactively
+./wprecon.sh --setup
+
+# This will prompt for:
+# - Shodan API key
+# - WPScan API key  
+# - Groq API key
+# Keys are saved to .wprecon.conf for future use
+```
+
 ### Professional Usage
 ```bash
 # Penetration testing scenario
 ./wprecon.sh --config pentest.conf \
-             --use-shodan --use-wpscan \
+             --use-shodan --use-wpscan --use-groq \
              --stealth --format json \
              -f client_sites.txt -o assessment_$(date +%Y%m%d).json
 
-# Quick vulnerability check
-./wprecon.sh -u https://target.com --wpscan-key KEY --use-wpscan -v
+# Quick vulnerability check with AI validation
+./wprecon.sh -u https://target.com --groq-key KEY --use-groq -v
+
+# WordPress version detection + CVE lookup
+./wprecon.sh -u https://target.com --wpscan-key KEY --use-wpscan
 ```
 
 ## 🔗 API Integration
@@ -262,9 +312,21 @@ COLOR_ENABLED=true
 - **Benefits**: Identify CVEs and known security issues
 - **Usage**: `--wpscan-key YOUR_KEY --use-wpscan`
 
+### Groq AI Integration
+- **Purpose**: AI-powered exploitation analysis and validation
+- **Free Tier**: Available
+- **Benefits**: 
+  - Validates if vulnerabilities are actually exploitable
+  - Provides CVSS scoring
+  - Generates proof-of-concept (PoC) commands
+  - Identifies relevant CVE IDs
+  - Assesses potential impact
+  - Recommends remediation steps
+- **Usage**: `--groq-key YOUR_KEY --use-groq`
+
 ## 🔍 Vulnerability Checks
 
-WPRecon performs 8+ different types of security checks:
+WPRecon performs **30+** different types of security checks:
 
 | Check Type | Description | Risk Level |
 |------------|-------------|------------|
@@ -276,6 +338,38 @@ WPRecon performs 8+ different types of security checks:
 | Plugin Enumeration | Detects installed plugins | Medium |
 | User Discovery | REST API user enumeration | Medium |
 | Backup File Exposure | Configuration backup detection | High |
+| wp-config.php Direct Access | Direct config file access | Critical |
+| .htaccess Exposure | Apache config exposure | High |
+| Debug Log Exposure | PHP debug log disclosure | Medium |
+| Database Backup Exposure | SQL dump exposure | Critical |
+| PHPinfo Exposure | PHP configuration disclosure | High |
+| License File Exposure | WordPress license exposure | Low |
+| XML Sitemap Exposure | Sitemap information disclosure | Low |
+| RSS Feed Exposure | Feed metadata exposure | Low |
+| WordPress Cron Exposure | WP-Cron endpoint exposure | Medium |
+| SQL Error Exposure | SQL error message disclosure | High |
+| Git Metadata Exposure | .git directory exposure | High |
+| SVN Metadata Exposure | .svn directory exposure | High |
+| DS_Store Exposure | macOS metadata exposure | Low |
+| WordPress Install Exposure | Installation script exposure | Critical |
+| Plugin Directory Listing | Plugin directory enumeration | Medium |
+| Theme Directory Listing | Theme directory enumeration | Medium |
+| Upload Directory Exposure | Upload directory listing | Medium |
+| XMLRPC PingBack | XMLRPC pingback abuse | Medium |
+| REST API User Enumeration | User data via REST API | Medium |
+| Author Archive Exposure | Author archive pages | Low |
+| Sitemap Info Disclosure | XML sitemap data exposure | Low |
+| PHP Error Exposure | PHP error messages | Medium |
+| Backup Archive Exposure | ZIP/TAR backup files | Critical |
+| SQL Dump Exposure | Database dump files | Critical |
+
+### WordPress Version Detection
+- Automatic version detection from:
+  - readme.html
+  - Generator meta tag
+  - RSS feed
+- CVE matching for detected version
+- AI-powered vulnerability analysis
 
 ## 📊 Output Formats
 

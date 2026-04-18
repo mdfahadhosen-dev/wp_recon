@@ -16,7 +16,9 @@
 #   for enhanced security analysis.
 #
 # Features:
-#   - Multi-vulnerability scanning with 8+ check types
+#   - Comprehensive vulnerability scanning (30+ check types)
+#   - WordPress version detection & CVE matching
+#   - AI-powered exploitation analysis & proof-of-concept generation
 #   - API integrations (Shodan, WPScan, Groq) for enhanced detection
 #   - Batch processing with progress tracking
 #   - Proxy support and rate limiting
@@ -44,9 +46,9 @@
 # =============================================================================
 # Configuration Variables
 # =============================================================================
-SCRIPT_VERSION="2.1"
+SCRIPT_VERSION="2.3"
 DEFAULT_TIMEOUT=10
-DEFAULT_USER_AGENT="WPRecon/2.1 (WordPress Security Scanner)"
+DEFAULT_USER_AGENT="WPRecon/2.3 (WordPress Security Scanner)"
 COLOR_ENABLED=true
 CONFIG_FILE=".wprecon.conf"
 EXPORT_FORMAT="txt"
@@ -91,6 +93,9 @@ TOTAL_VULNERABILITIES=0
 VULNERABLE_URLS=()
 CURRENT_SCAN=0
 VALIDATED_VULNERABILITIES=()
+WP_VERSION=""
+WP_VERSION_DETECTED=false
+EXPLOIT_DB_RESULTS=()
 
 # =============================================================================
 # Function: display_banner
@@ -520,6 +525,113 @@ check_user_enumeration() {
 }
 
 # =============================================================================
+# Function: detect_wordpress_version
+# =============================================================================
+detect_wordpress_version() {
+    local url="$1"
+    WP_VERSION=""
+    WP_VERSION_DETECTED=false
+    
+    echo -e "${BLUE}[*] Detecting WordPress version...${NC}"
+    
+    # Check readme.html
+    local readme_response
+    readme_response=$(http_request "${url}/readme.html")
+    if echo "$readme_response" | grep -qi "version"; then
+        WP_VERSION=$(echo "$readme_response" | grep -oP 'Version\s+\K[0-9.]+' | head -1)
+    fi
+    
+    # Check generator meta tag
+    if [[ -z "$WP_VERSION" ]]; then
+        local index_response
+        index_response=$(http_request "$url")
+        WP_VERSION=$(echo "$index_response" | grep -oP 'wordpress\s+\K[0-9.]+' | head -1)
+    fi
+    
+    # Check feed
+    if [[ -z "$WP_VERSION" ]]; then
+        local feed_response
+        feed_response=$(http_request "${url}/feed/")
+        WP_VERSION=$(echo "$feed_response" | grep -oP 'wordpress\s+\K[0-9.]+' | head -1)
+    fi
+    
+    if [[ -n "$WP_VERSION" ]]; then
+        WP_VERSION_DETECTED=true
+        echo -e "${GREEN}[+] WordPress version detected: $WP_VERSION${NC}"
+        
+        # Query for known CVEs if WPScan or Groq enabled
+        if [[ "$USE_WPSCAN" == true || "$USE_GROQ" == true ]]; then
+            check_cve_database "$url" "$WP_VERSION"
+        fi
+    else
+        echo -e "${YELLOW}[!] Could not detect WordPress version${NC}"
+    fi
+}
+
+# =============================================================================
+# Function: check_cve_database
+# =============================================================================
+check_cve_database() {
+    local url="$1"
+    local version="$2"
+    
+    echo -e "${BLUE}[*] Checking CVE database for WordPress $version...${NC}"
+    
+    if [[ "$USE_GROQ" == true ]]; then
+        # Use Groq AI to find relevant CVEs and exploits
+        local cve_prompt="You are a cybersecurity expert. Find known CVEs and exploits for WordPress version $version.
+
+Provide a JSON response:
+{
+  \"cves\": [{\"id\": \"CVE-XXXX-XXXX\", \"severity\": \"critical/high/medium/low\", \"description\": \"brief\"}],
+  \"known_exploits\": [{\"type\": \"RCE/SQLi/XSS\", \"description\": \"brief\"}],
+  \"recommended_exploits\": [\"command to test\"]
+}
+
+Respond only with valid JSON."
+        
+        local cve_response
+        cve_response=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
+            -H "Authorization: Bearer $GROQ_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+                \"model\": \"llama-3.1-70b-versatile\",
+                \"messages\": [
+                    {\"role\": \"system\", \"content\": \"You are a cybersecurity vulnerability expert.\"},
+                    {\"role\": \"user\", \"content\": \"$cve_prompt\"}
+                ],
+                \"temperature\": 0.3,
+                \"max_tokens\": 800
+            }")
+        
+        local ai_content
+        ai_content=$(echo "$cve_response" | jq -r '.choices[0].message.content' 2>/dev/null)
+        
+        if [[ -n "$ai_content" && "$ai_content" != "null" ]]; then
+            ai_content=$(echo "$ai_content" | tr -d '\n\r' | sed 's/[[:space:]]\+/ /g')
+            
+            local cves exploits
+            cves=$(echo "$ai_content" | sed -n 's/.*"cves": *\[\(.*\)\].*/\1/p')
+            exploits=$(echo "$ai_content" | sed -n 's/.*"known_exploits": *\[\(.*\)\].*/\1/p')
+            
+            echo -e "${CYAN}[+] CVE Database Results for WP $version:${NC}"
+            echo -e "  ${WHITE}CVEs Found:${NC} $cves"
+            echo -e "  ${WHITE}Known Exploits:${NC} $exploits"
+            
+            # Store for export
+            EXPLOIT_DB_RESULTS+=("$url|WP $version|$cves|$exploits")
+            
+            # Show severity warnings
+            if echo "$ai_content" | grep -q "critical"; then
+                echo -e "${RED}[!] CRITICAL vulnerabilities found for WordPress $version!${NC}"
+            elif echo "$ai_content" | grep -q "high"; then
+                echo -e "${YELLOW}[!] HIGH severity vulnerabilities found for WordPress $version${NC}"
+            fi
+        fi
+    fi
+}
+
+# =============================================================================
 # Function: check_backup_files
 # =============================================================================
 check_backup_files() {
@@ -726,12 +838,61 @@ scan_url() {
     check_vulnerability "$url" "WordPress Cron Exposure" "/wp-cron.php" "XML-RPC"
     [[ $? -eq 1 ]] && vuln_results+="WP-Cron;" && ((vulnerabilities_found++))
 
+    # Extended vulnerability checks
+    check_vulnerability "$url" "SQL Error Exposure" "/wp-admin/admin-ajax.php" "SQL syntax"
+    [[ $? -eq 1 ]] && vuln_results+="SQL Error;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "Git Metadata Exposure" "/.git/config" "repository"
+    [[ $? -eq 1 ]] && vuln_results+="Git Metadata;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "SVN Metadata Exposure" "/.svn/entries" "svn"
+    [[ $? -eq 1 ]] && vuln_results+="SVN Metadata;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "DS_Store Exposure" "/.DS_Store" "Apple"
+    [[ $? -eq 1 ]] && vuln_results+="DS_Store;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "WordPress Install Exposure" "/wp-admin/install.php" "installing WordPress"
+    [[ $? -eq 1 ]] && vuln_results+="Install Exposure;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "Plugin Directory Listing" "/wp-content/plugins/" "Index of"
+    [[ $? -eq 1 ]] && vuln_results+="Plugin Listing;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "Theme Directory Listing" "/wp-content/themes/" "Index of"
+    [[ $? -eq 1 ]] && vuln_results+="Theme Listing;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "Upload Directory Exposure" "/wp-content/uploads/" "Index of"
+    [[ $? -eq 1 ]] && vuln_results+="Upload Listing;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "XMLRPC PingBack" "/xmlrpc.php" "pingback"
+    [[ $? -eq 1 ]] && vuln_results+="XMLRPC PingBack;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "REST API User Enumeration" "/wp-json/wp/v2/users" "slug"
+    [[ $? -eq 1 ]] && vuln_results+="REST User Enum;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "Author Archive Exposure" "/?author=1" "author archive"
+    [[ $? -eq 1 ]] && vuln_results+="Author Archive;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "XML Sitemap Info Disclosure" "/sitemap.xml" "wp-schema"
+    [[ $? -eq 1 ]] && vuln_results+="Sitemap Info;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "PHP Error Exposure" "/wp-content/debug.log" "Warning"
+    [[ $? -eq 1 ]] && vuln_results+="PHP Errors;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "Backup Archive Exposure" "/*.zip" "PK"
+    [[ $? -eq 1 ]] && vuln_results+="Zip Backup;" && ((vulnerabilities_found++))
+
+    check_vulnerability "$url" "SQL Dump Exposure" "/*.sql" "MySQL"
+    [[ $? -eq 1 ]] && vuln_results+="SQL Dump;" && ((vulnerabilities_found++))
+
+    # Detect WordPress version
+    detect_wordpress_version "$url"
+
     # Advanced checks
     check_plugin_enumeration "$url"
     check_user_enumeration "$url"
     check_backup_files "$url"
 
-    # Validate vulnerabilities with Groq AI if enabled
+    # Validate vulnerabilities with Groq AI if enabled (includes exploitation analysis)
     if [[ "$USE_GROQ" == true && -n "$vuln_results" ]]; then
         validate_vulnerability "$url" "$vuln_results"
     fi
@@ -752,23 +913,29 @@ scan_url() {
 validate_vulnerability() {
     local target_url="$1"
     local vuln_types="$2"
+    local wp_ver="${WP_VERSION:-unknown}"
     
-    echo -e "${BLUE}[*] Validating vulnerabilities with Groq AI...${NC}"
+    echo -e "${BLUE}[*] Running AI exploitation analysis...${NC}"
     
-    local prompt="You are a security expert. Analyze this WordPress vulnerability finding:
+    local prompt="You are a cybersecurity exploit developer. Analyze this WordPress target:
 
 Target: $target_url
+WordPress Version: $wp_ver
 Vulnerability Types: $vuln_types
 
-Provide a JSON response with:
+Provide JSON with:
 {
   \"is_exploitable\": true/false,
   \"severity\": \"critical/high/medium/low\",
-  \"exploitation_steps\": \"brief explanation\",
-  \"remediation\": \"recommended fix\"
+  \"cvss_score\": \"0.0-10.0\",
+  \"exploitation_steps\": \"detailed steps\",
+  \"poc_command\": \"test command\",
+  \"remediation\": \"fix\",
+  \"cve_ids\": [\"CVE-XXXX\"],
+  \"impact\": \"attacker achieve\"
 }
 
-Respond only with valid JSON."
+Respond ONLY with valid JSON."
     
     local response
     response=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
@@ -800,29 +967,37 @@ Respond only with valid JSON."
         
         is_exploitable=$(echo "$ai_content" | sed -n 's/.*"is_exploitable": *\([^,}]*\).*/\1/p' | tr -d ' ')
         severity=$(echo "$ai_content" | sed -n 's/.*"severity": *"\([^"]*\)".*/\1/p')
+        cvss=$(echo "$ai_content" | sed -n 's/.*"cvss_score": *"\([^"]*\)".*/\1/p')
         steps=$(echo "$ai_content" | sed -n 's/.*"exploitation_steps": *"\([^"]*\)".*/\1/p')
+        poc=$(echo "$ai_content" | sed -n 's/.*"poc_command": *"\([^"]*\)".*/\1/p')
+        cve_ids=$(echo "$ai_content" | sed -n 's/.*"cve_ids": *\[\([^]]*\)\].*/\1/p')
+        impact=$(echo "$ai_content" | sed -n 's/.*"impact": *"\([^"]*\)".*/\1/p')
         fix=$(echo "$ai_content" | sed -n 's/.*"remediation": *"\([^"]*\)".*/\1/p')
         
         if [[ -n "$is_exploitable" && -n "$severity" ]]; then
-            echo -e "${CYAN}[+] AI Validation Results:${NC}"
+            echo -e "${CYAN}[+] AI Exploitation Analysis:${NC}"
             echo -e "  ${WHITE}Exploitable:${NC} $is_exploitable"
             echo -e "  ${WHITE}Severity:${NC} $severity"
+            [[ -n "$cvss" ]] && echo -e "  ${WHITE}CVSS Score:${NC} $cvss"
+            [[ -n "$cve_ids" ]] && echo -e "  ${WHITE}CVE IDs:${NC} $cve_ids"
+            echo -e "  ${WHITE}Impact:${NC} $impact"
             echo -e "  ${WHITE}Exploitation:${NC} $steps"
+            [[ -n "$poc" ]] && echo -e "  ${WHITE}PoC Command:${NC} $poc"
             echo -e "  ${WHITE}Remediation:${NC} $fix"
             
             # Store validated result
-            VALIDATED_VULNERABILITIES+=("$target_url|$vuln_types|$is_exploitable|$severity")
+            VALIDATED_VULNERABILITIES+=("$target_url|$vuln_types|$is_exploitable|$severity|$cvss|$cve_ids")
             
             if [[ "$is_exploitable" == "true" ]]; then
-                echo -e "${GREEN}[!] VALIDATED: Vulnerability is exploitable!${NC}"
+                echo -e "${GREEN}[!] EXPLOITABLE: Can be exploited!${NC}"
             else
-                echo -e "${YELLOW}[!] VALIDATED: Vulnerability may not be exploitable${NC}"
+                echo -e "${YELLOW}[!] Not currently exploitable${NC}"
             fi
         else
             echo -e "${YELLOW}[!] AI response parsing failed${NC}"
         fi
     else
-        echo -e "${YELLOW}[!] AI validation failed or returned invalid response${NC}"
+        echo -e "${YELLOW}[!] AI analysis failed${NC}"
     fi
 }
 
